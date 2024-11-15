@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.17;
+pragma solidity ^0.8.27;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -22,11 +22,16 @@ contract EventContract {
         address eventCreator;
     }
 
-    IERC20 public token;  // ERC-20 token used for payments
+    IERC20 public token; // ERC-20 token used for payments
     mapping(uint => Event) public events;
     uint public eventCount;
 
-    event EventCreated(uint eventId, string eventName, address indexed creator, uint endTime);
+    event EventCreated(
+        uint eventId,
+        string eventName,
+        address indexed creator,
+        uint endTime
+    );
     event SitReserved(string userName, uint eventId);
     event UserCheckedIn(uint eventId, address userAddress);
     event RefundsProcessed(uint eventId);
@@ -37,7 +42,12 @@ contract EventContract {
     }
 
     // Create a new event with token requirements and an end time
-    function createEvent(string memory _eventName, uint _expectedUsers, uint _tokenRequired, uint _endTime) external returns (bool) {
+    function createEvent(
+        string memory _eventName,
+        uint _expectedUsers,
+        uint _tokenRequired,
+        uint _endTime
+    ) external returns (bool) {
         require(_endTime > block.timestamp, "End time must be in the future");
 
         eventCount++;
@@ -54,13 +64,27 @@ contract EventContract {
     }
 
     // Reserve a space with tokens
-    function reserveSpace(uint _eventId, string memory _userName) external returns (bool) {
+    function reserveSpace(
+        uint _eventId,
+        string memory _userName
+    ) external returns (bool) {
         Event storage eventDetails = events[_eventId];
-        require(token.allowance(msg.sender, address(this)) >= eventDetails.tokenRequired, "Token allowance too low");
-        require(eventDetails.reservations[msg.sender].walletAddress == address(0), "User already reserved a seat");
+        require(
+            token.allowance(msg.sender, address(this)) >=
+                eventDetails.tokenRequired,
+            "ERC20: transfer amount exceeds balance"
+        );
+        require(
+            eventDetails.reservations[msg.sender].walletAddress == address(0),
+            "User already reserved a seat"
+        );
 
         // Transfer tokens from user to the contract
-        token.transferFrom(msg.sender, address(this), eventDetails.tokenRequired);
+        token.transferFrom(
+            msg.sender,
+            address(this),
+            eventDetails.tokenRequired
+        );
 
         // Record reservation details
         User storage user = eventDetails.reservations[msg.sender];
@@ -76,13 +100,25 @@ contract EventContract {
     }
 
     // Organizer checks in a user and issues a token refund
-    function checkIn(uint _eventId, address _userAddress) external returns (bool) {
+    function checkIn(
+        uint _eventId,
+        address _userAddress
+    ) external returns (bool) {
         Event storage eventDetails = events[_eventId];
 
         require(_eventId <= eventCount, "Event does not exist");
-        require(msg.sender == eventDetails.eventCreator, "Only the event organizer can check in users");
-        require(eventDetails.reservations[_userAddress].walletAddress != address(0), "User has not reserved a seat");
-        require(!eventDetails.reservations[_userAddress].checkedIn, "User already checked in");
+        require(
+            msg.sender == eventDetails.eventCreator,
+            "Only the event organizer can check in users"
+        );
+        require(
+            eventDetails.reservations[_userAddress].walletAddress != address(0),
+            "User has not reserved a seat"
+        );
+        require(
+            !eventDetails.reservations[_userAddress].checkedIn,
+            "User already checked in"
+        );
 
         eventDetails.reservations[_userAddress].checkedIn = true;
         eventDetails.checkedInUsers[_userAddress] = true;
@@ -100,8 +136,14 @@ contract EventContract {
         Event storage eventDetails = events[_eventId];
 
         require(_eventId <= eventCount, "Event does not exist");
-        require(msg.sender == eventDetails.eventCreator, "Only the event creator can claim funds");
-        require(block.timestamp > eventDetails.endTime, "Cannot claim funds before event ends");
+        require(
+            msg.sender == eventDetails.eventCreator,
+            "Only the event creator can claim funds"
+        );
+        require(
+            block.timestamp > eventDetails.endTime,
+            "Cannot claim funds before event ends"
+        );
 
         uint refundAmount = eventDetails.totalAmount;
 
@@ -111,5 +153,14 @@ contract EventContract {
 
         emit RefundsProcessed(_eventId);
         return true;
+    }
+
+    // Add this function to your EventContract
+    function isUserCheckedIn(
+        uint _eventId,
+        address _userAddress
+    ) public view returns (bool) {
+        Event storage eventDetails = events[_eventId];
+        return eventDetails.checkedInUsers[_userAddress];
     }
 }
