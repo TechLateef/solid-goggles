@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MyToken is ERC20 {
-    uint8 private _decimals;
+    uint8 private __decimals;
         address public owner;
 
 
@@ -22,7 +22,7 @@ contract MyToken is ERC20 {
 
     // Override the decimals function
     function decimals() public view override returns (uint8) {
-        return _decimals;
+        return __decimals;
     }
 
        modifier onlyOwner() {
